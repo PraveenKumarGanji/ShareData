@@ -1,0 +1,56 @@
+using Amazon.S3;
+using Amazon.S3.Model;
+
+var s3Client = new AmazonS3Client();
+var initiateRequest = new InitiateMultipartUploadRequest
+{
+    BucketName = "your-bucket",
+    Key = "your-object-key"
+};
+var initiateResponse = await s3Client.InitiateMultipartUploadAsync(initiateRequest);
+string uploadId = initiateResponse.UploadId;
+
+var presignedUrls = new List<string>();
+for (int partNumber = 1; partNumber <= totalParts; partNumber++)
+{
+    var request = new GetPreSignedUrlRequest
+    {
+        BucketName = "your-bucket",
+        Key = "your-object-key",
+        Verb = HttpVerb.PUT,
+        Expires = DateTime.UtcNow.AddMinutes(15),
+        UploadId = uploadId,
+        PartNumber = partNumber
+    };
+    string url = s3Client.GetPreSignedURL(request);
+    presignedUrls.Add(url);
+}
+
+var completeRequest = new CompleteMultipartUploadRequest
+{
+    BucketName = "your-bucket",
+    Key = "your-object-key",
+    UploadId = uploadId,
+    PartETags = partETags // List<PartETag> from the client
+};
+await s3Client.CompleteMultipartUploadAsync(completeRequest);
+
+//Angular
+const chunkSize = 10 * 1024 * 1024; // 10 MB
+const file = this.selectedFile;
+const totalParts = Math.ceil(file.size / chunkSize);
+for (let part = 0; part < totalParts; part++) {
+  const start = part * chunkSize;
+  const end = Math.min(start + chunkSize, file.size);
+  const blob = file.slice(start, end);
+
+  // presignedUrls[part] should be provided by your backend
+  await fetch(presignedUrls[part], {
+    method: 'PUT',
+    body: blob
+  });
+  // Collect ETag from response header for completion step
+}
+
+
+
