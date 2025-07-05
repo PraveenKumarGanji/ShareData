@@ -1,0 +1,23 @@
+<div class="upload-container">
+  <h2>File Upload</h2>
+  
+  <div class="upload-section">
+    <input #fileInput type="file" multiple (change)="uploadStandard(fileInput.files)" />
+    <button (click)="fileInput.click()">Select Files (Standard Upload)</button>
+  </div>
+  
+  <div class="upload-section">
+    <input #largeFileInput type="file" (change)="uploadLargeFile(largeFileInput.files)" />
+    <button (click)="largeFileInput.click()">Select Large File (Multipart Upload)</button>
+  </div>
+  
+  <div *ngIf="isUploading" class="progress-container">
+    <p>{{message}}</p>
+    <progress [value]="progress" max="100"></progress>
+    <span>{{progress}}%</span>
+  </div>
+  
+  <div *ngIf="!isUploading && message" class="message">
+    {{message}}
+  </div>
+</div>
