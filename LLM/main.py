@@ -3,12 +3,11 @@ import uvicorn
 from fastapi import FastAPI, Request
 from typing import Dict
 from app.state import OffboardingState
-from app.graph_runner import SimpleGraphRunner
+from app.runner import run_workflow
 
-app = FastAPI(title="Offboarding LangChain LangGraph Demo")
+app = FastAPI(title="Offboarding with LangChain + LangGraph")
 
 SESSIONS: Dict[str, OffboardingState] = {}
-runner = SimpleGraphRunner()
 
 def get_session(session_id: str) -> OffboardingState:
     if session_id not in SESSIONS:
@@ -25,15 +24,16 @@ async def chat_endpoint(req: Request):
     state = get_session(session_id)
     state.user_id = user_id
 
-    result = await runner.run_turn(state, message)
+    final_state = await run_workflow(state, message)
 
+    # The graph run will update state.trace, state.result, etc.
     return {
-        "type": result["type"],
-        "assistant": result["assistant"],
-        "state_trace": state.trace,
-        "known_params": state.known_params,
-        "missing_params": state.missing_params,
-        "result": state.result
+        "type": "done",
+        "assistant": final_state.result if final_state.result else "OK",
+        "state_trace": final_state.trace,
+        "known_params": final_state.known_params,
+        "missing_params": final_state.missing_params,
+        "result": final_state.result
     }
 
 if __name__ == "__main__":
